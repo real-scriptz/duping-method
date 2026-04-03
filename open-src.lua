@@ -1,6 +1,5 @@
--- ✅ FIXED TINIEST Draggable "DUPING METHOD" Button (100% Mobile Touch Fixed)
--- Smallest possible UI: 50x50 round button
--- Drag code now attached DIRECTLY to the button (this fixes why it wasn't dragging before)
+-- ✅ TINIEST Draggable "DUPING METHOD" Button (Mobile + PC Fixed)
+-- 50x50 round button + Press R on PC
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -14,7 +13,7 @@ screenGui.Name = "DUPING_METHOD_GUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- SMALLEST main frame (50x50)
+-- Main Frame (50x50)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "DUPING_METHOD_FRAME"
 mainFrame.Size = UDim2.new(0, 50, 0, 50)
@@ -24,23 +23,24 @@ mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Parent = screenGui
 
--- Perfect circle
+-- Make it a perfect circle
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(1, 0)
 corner.Parent = mainFrame
 
--- Button with EXACT name "DUPING METHOD"
+-- Invisible button overlay with text
 local dupingButton = Instance.new("TextButton")
 dupingButton.Name = "DUPING_METHOD_BUTTON"
 dupingButton.Size = UDim2.new(1, 0, 1, 0)
 dupingButton.BackgroundTransparency = 1
-dupingButton.Text = "DUPING METHOD"
+dupingButton.Text = "DUPING\nMETHOD"
 dupingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 dupingButton.TextScaled = true
 dupingButton.Font = Enum.Font.GothamBold
+dupingButton.TextWrapped = true
 dupingButton.Parent = mainFrame
 
--- === CUSTOM DRAG (now connected to the button itself - this is the fix) ===
+-- === DRAG SYSTEM ===
 local dragging = false
 local dragStart = nil
 local startPos = nil
@@ -56,36 +56,43 @@ local function updateDrag(input)
     )
 end
 
--- DRAG START + MOVEMENT now on the button (fixes the issue)
+-- Drag on button (for both mouse and touch)
 dupingButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+       input.UserInputType == Enum.UserInputType.Touch then
+        
         dragging = true
         dragStart = input.Position
         startPos = mainFrame.Position
         
-        input.Changed:Connect(function()
+        -- Auto release when finger/mouse lifts
+        local conn
+        conn = input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
+                conn:Disconnect()
             end
         end)
     end
 end)
 
 dupingButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
+                     input.UserInputType == Enum.UserInputType.Touch) then
         updateDrag(input)
     end
 end)
 
--- Global fallback for smooth drag even if finger leaves the tiny button
+-- Global fallback (very important for tiny button on mobile)
 UserInputService.InputChanged:Connect(function(input)
-    if dragging then
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or 
+                     input.UserInputType == Enum.UserInputType.Touch) then
         updateDrag(input)
     end
 end)
 
--- Click = instant reset (duping method)
-dupingButton.MouseButton1Click:Connect(function()
+-- === TRIGGER FUNCTIONS ===
+local function triggerDupingMethod()
     local character = player.Character
     if character and character:FindFirstChild("Humanoid") then
         character.Humanoid.Health = 0
@@ -95,7 +102,19 @@ dupingButton.MouseButton1Click:Connect(function()
             end
         end)
     end
+end
+
+-- Click on button (works on both mobile and PC)
+dupingButton.MouseButton1Click:Connect(triggerDupingMethod)
+
+-- Press R on keyboard (PC only)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.R then
+        triggerDupingMethod()
+    end
 end)
 
-print("✅ TINIEST DUPING METHOD button loaded + FIXED!")
-print("Drag the tiny blue circle anywhere - mobile touch should now work perfectly")
+print("✅ TINIEST DUPING METHOD button loaded!")
+print("• Drag the tiny blue circle (works on mobile)")
+print("• Click the button or press R on PC to trigger")
